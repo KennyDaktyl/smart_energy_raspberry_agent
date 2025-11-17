@@ -9,17 +9,6 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 async def handle_device_command(msg):
-    """
-    Obsługuje polecenia sterowania GPIO:
-    {
-        "action": "SET_DEVICE_STATE",
-        "data": {
-            "device_id": 2,
-            "gpio_pin": 17,
-            "state": true
-        }
-    }
-    """
     try:
         payload = json.loads(msg.data.decode())
         action = payload.get("action")
@@ -31,23 +20,29 @@ async def handle_device_command(msg):
             gpio_pin = data["gpio_pin"]
             state = data["state"]
 
-            # 🔥 BEZ CONFIG.JSON — od razu sterujemy pinem z backendu
+            logger.info(f"🔧 Executing SET_DEVICE_STATE on pin {gpio_pin}")
+
             success = gpio_controller.direct_pin_control(gpio_pin, state)
 
-            # wyślij ACK
             ack_msg = {
                 "device_id": data["device_id"],
                 "ok": success,
-                "state": state
+                "state": state,
             }
 
-            await nats_client.publish(
-                f"raspberry.{settings.DEVICE_UUID}.command_ack",
-                ack_msg
-            )
-            return
+            topic = f"raspberry.{settings.DEVICE_UUID}.ack"
+            logger.info(f"📨 Sending ACK to {topic}: {ack_msg}")
 
-        logger.warning(f"⚠️ Unknown action: {action}")
+            # NATS expects bytes, so encode JSON
+            await nats_client.publish(
+                topic,
+                json.dumps(ack_msg).encode()
+            )
+
+            logger.info("✅ ACK sent successfully!")
+
+        else:
+            logger.warning(f"⚠️ Unknown action: {action}")
 
     except Exception as e:
         logger.exception(f"❌ Error while handling device command: {e}")

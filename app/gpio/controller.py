@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 
 # -------------------------------------------------------------------
-#  GPIO or Mock
+#  GPIO or Mock (na PC lub Docker)
 # -------------------------------------------------------------------
 try:
     import RPi.GPIO as GPIO
@@ -15,6 +15,10 @@ except (ImportError, RuntimeError):
         OUT = "OUT"
         LOW = "LOW"
         HIGH = "HIGH"
+
+        @staticmethod
+        def setwarnings(flag):
+            print(f"[MOCK GPIO] setwarnings({flag})")
 
         @staticmethod
         def setmode(mode):
@@ -39,16 +43,26 @@ CONFIG_PATH = Path("config.json")
 #  GPIO Controller
 # -------------------------------------------------------------------
 class GPIOController:
+    """
+    Kontroler GPIO dla Raspberry Pi z logiką LOW = ON, HIGH = OFF,
+    kompatybilny z modułami przekaźników low-trigger.
+    """
+
     def __init__(self):
-        self.pin_map = {}  # device_id → gpio_pin
-        GPIO.setmode(GPIO.BCM)
-        logger.info("🔌 GPIOController initialized")
+        self.pin_map = {}  # optional: device_id → gpio_pin
+
+        try:
+            GPIO.setwarnings(False)
+            GPIO.setmode(GPIO.BCM)
+        except Exception as e:
+            logger.error(f"⚠️ GPIO init error: {e}")
+
+        logger.info("🔌 GPIOController initialized (LOW=ON, HIGH=OFF)")
 
     # ---------------------------------------------------------------
-    #  Optional config.json loading (NOT REQUIRED)
+    # Optional: load config.json (jeśli backend wyśle)
     # ---------------------------------------------------------------
     def load_config(self):
-        """Wczytuje config.json jeśli istnieje (mapowanie device_id → pin)."""
         if not CONFIG_PATH.exists():
             logger.warning("⚠️ config.json not found — no pin mapping loaded")
             return
@@ -62,7 +76,7 @@ class GPIOController:
             # inicjalizacja pinów
             for pin in self.pin_map.values():
                 GPIO.setup(pin, GPIO.OUT)
-                GPIO.output(pin, GPIO.LOW)
+                GPIO.output(pin, GPIO.HIGH)   # domyślnie OFF
 
             logger.info(f"🔌 GPIO config loaded: {self.pin_map}")
 
@@ -70,18 +84,27 @@ class GPIOController:
             logger.exception(f"❌ Error loading config.json: {e}")
 
     # ---------------------------------------------------------------
-    #  NEW — direct pin control (backend sends gpio_pin)
+    # ⭐ NEW — BEZPOŚREDNIE STEROWANIE PINEM (z backendu)
     # ---------------------------------------------------------------
     def direct_pin_control(self, gpio_pin: int, state: bool):
         """
-        Sterowanie bezpośrednio pinek GPIO wysłanym przez backend.
+        Steruje bezpośrednio pinem GPIO:
+        - LOW  = ON
+        - HIGH = OFF
+
+        Idealne do przekaźników low-trigger.
         """
         try:
             GPIO.setup(gpio_pin, GPIO.OUT)
-            GPIO.output(gpio_pin, GPIO.HIGH if state else GPIO.LOW)
+
+            # 🔥 Najważniejsza część — stara logika twojego systemu!
+            gpio_state = GPIO.LOW if state else GPIO.HIGH
+
+            GPIO.output(gpio_pin, gpio_state)
 
             logger.info(
-                f"⚡ Direct GPIO control pin={gpio_pin} → {'ON' if state else 'OFF'}"
+                f"⚡ Direct GPIO control pin={gpio_pin} → "
+                f"{'ON (LOW)' if state else 'OFF (HIGH)'}"
             )
             return True
 
@@ -90,11 +113,11 @@ class GPIOController:
             return False
 
     # ---------------------------------------------------------------
-    # Optional OLD method — only if using config.json
+    # Optional OLD method — jeśli ktoś użyje device_id
     # ---------------------------------------------------------------
     def set_state(self, device_id: int, state: bool):
         """
-        Sterowanie na podstawie device_id → pin_map (tylko gdy config.json istnieje).
+        Sterowanie wg config.json (device_id → pin).
         """
         pin = self.pin_map.get(str(device_id))
         if pin is None:
@@ -102,10 +125,14 @@ class GPIOController:
             return False
 
         try:
-            GPIO.output(pin, GPIO.HIGH if state else GPIO.LOW)
+            gpio_state = GPIO.LOW if state else GPIO.HIGH
+            GPIO.output(pin, gpio_state)
+
             logger.info(
-                f"🟢 GPIO mapped control device_id={device_id}, pin={pin} → {'ON' if state else 'OFF'}"
+                f"🟢 GPIO mapped control device_id={device_id}, pin={pin} → "
+                f"{'ON' if state else 'OFF'}"
             )
+
             return True
 
         except Exception as e:
@@ -114,6 +141,6 @@ class GPIOController:
 
 
 # -------------------------------------------------------------------
-#  Singleton instance
+#  GLOBAL SINGLETON — używany przez device_handler
 # -------------------------------------------------------------------
 gpio_controller = GPIOController()

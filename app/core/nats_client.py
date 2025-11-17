@@ -12,15 +12,27 @@ class NatsClient:
 
     async def connect(self):
         await self.nc.connect(settings.NATS_URL)
-        logger.info(f"✅ Connected to NATS at {settings.NATS_URL}")
+        logger.info(f"🐭 Connected to NATS at {settings.NATS_URL}")
 
     async def subscribe(self, subject: str, callback):
-        await self.nc.subscribe(subject, cb=callback)
+        async def wrapper(msg):
+            await callback(msg)
+
+        await self.nc.subscribe(subject, cb=wrapper)
         logger.info(f"📡 Subscribed to {subject}")
 
-    async def publish(self, subject: str, message: dict):
-        data = json.dumps(message).encode()
+    async def publish(self, subject: str, message):
+        """
+        Accepts:
+        - dict -> JSON convert
+        - bytes -> send raw
+        """
+        if isinstance(message, bytes):
+            data = message
+        else:
+            data = json.dumps(message).encode()
+
         await self.nc.publish(subject, data)
-        logger.debug(f"📤 Published to {subject}: {message}")
+        logger.info(f"📤 Published to {subject}: {message}")
 
 nats_client = NatsClient()
