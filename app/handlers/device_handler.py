@@ -1,51 +1,53 @@
+# app/handlers/device_handler.py
+
 import json
 import logging
 from app.gpio.controller import gpio_controller
-from app.core.config import settings
 from app.core.nats_client import nats_client
-from app.handlers.utils import safe_ack
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-
 async def handle_device_command(msg):
     """
-    Handler dla wiadomości:
-    🔹 "raspberry.<uuid>.command"
+    Obsługuje polecenia sterowania GPIO:
+    {
+        "action": "SET_DEVICE_STATE",
+        "data": {
+            "device_id": 2,
+            "gpio_pin": 17,
+            "state": true
+        }
+    }
     """
     try:
-        data = json.loads(msg.data.decode())
-        action = data.get("action")
-        payload = data.get("data", {})
-        logger.info(f"⚡ Otrzymano komendę: {action} → {payload}")
+        payload = json.loads(msg.data.decode())
+        action = payload.get("action")
+        data = payload.get("data", {})
+
+        logger.info(f"📥 Received device command: {payload}")
 
         if action == "SET_DEVICE_STATE":
-            device_id = payload.get("device_id")
-            state = payload.get("state", False)
+            gpio_pin = data["gpio_pin"]
+            state = data["state"]
 
-            # ok = gpio_controller.set_state(device_id, state)
-            ok = 1
-            await safe_ack(
-                subject=f"raspberry.{settings.DEVICE_UUID}.ack",
-                message={"device_id": device_id, "ok": ok, "state": state},
-            )
+            # 🔥 BEZ CONFIG.JSON — od razu sterujemy pinem z backendu
+            success = gpio_controller.direct_pin_control(gpio_pin, state)
 
-        elif action == "PING":
-            await safe_ack(
-                subject=f"raspberry.{settings.DEVICE_UUID}.ack",
-                message={"type": "PING", "ok": True},
-            )
+            # wyślij ACK
+            ack_msg = {
+                "device_id": data["device_id"],
+                "ok": success,
+                "state": state
+            }
 
-        else:
-            logger.warning(f"⚠️ Nieznana komenda: {action}")
-            await safe_ack(
-                subject=f"raspberry.{settings.DEVICE_UUID}.ack",
-                message={"ok": False, "error": f"Unknown action: {action}"},
+            await nats_client.publish(
+                f"raspberry.{settings.DEVICE_UUID}.command_ack",
+                ack_msg
             )
+            return
+
+        logger.warning(f"⚠️ Unknown action: {action}")
 
     except Exception as e:
-        logger.exception(f"❌ Błąd w obsłudze komendy urządzenia: {e}")
-        await safe_ack(
-            subject=f"raspberry.{settings.DEVICE_UUID}.ack",
-            message={"ok": False, "error": str(e)},
-        )
+        logger.exception(f"❌ Error while handling device command: {e}")
