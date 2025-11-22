@@ -1,0 +1,109 @@
+import logging
+from app.domain.events.device_events import DeviceCreatedPayload
+from app.domain.gpio.entities import GPIODevice
+from app.infrastructure.gpio.gpio_config_storage import gpio_config_storage
+from app.infrastructure.gpio.gpio_controller import gpio_controller
+from app.infrastructure.gpio.gpio_manager import gpio_manager
+from app.infrastructure.gpio.gpio_pin_mapping import pin_mapping
+
+logger = logging.getLogger(__name__)
+
+
+class GPIOService:
+
+    # -----------------------------------------------------
+    # Tworzenie nowego lokalnego urządzenia
+    # -----------------------------------------------------
+    def create_device(self, payload: DeviceCreatedPayload):
+        """
+        payload: DeviceCreatedPayload
+        """
+        devices = gpio_config_storage.load()
+
+        gpio_pin = pin_mapping.get_pin(payload.device_number)
+
+        new_device = GPIODevice(
+            device_id=payload.device_id,
+            pin_number=gpio_pin,
+            mode=payload.mode,
+            power_threshold_w=payload.threshold_w,
+        )
+
+        devices.append(new_device)
+        gpio_config_storage.save(devices)
+
+        # aktualizacja active_low
+        gpio_controller.active_low = pin_mapping.is_active_low()
+
+        gpio_controller.load_from_entities(devices)
+        gpio_manager.load_devices(devices)
+
+        logger.info(
+            f"GPIOService: created device {payload.device_id} "
+            f"(device_number={payload.device_number} → pin={gpio_pin})"
+        )
+
+    # -----------------------------------------------------
+    # Aktualizacja istniejącego urządzenia
+    # -----------------------------------------------------
+    def update_device(self, payload):
+
+        """
+        payload: DeviceUpdatedPayload
+        """
+
+        devices = gpio_config_storage.load()
+        updated = False
+
+        for d in devices:
+            if d.device_id == payload.device_id:
+                d.mode = payload.mode
+                d.power_threshold_w = payload.threshold_w
+                updated = True
+
+        if not updated:
+            logger.error(f"GPIOService: cannot update, device_id={payload.device_id} not found")
+            return False
+
+        gpio_config_storage.save(devices)
+
+        gpio_controller.active_low = pin_mapping.is_active_low()
+        gpio_controller.load_from_entities(devices)
+        gpio_manager.load_devices(devices)
+
+        logger.info(f"GPIOService: updated device {payload.device_id}")
+        return True
+
+    # -----------------------------------------------------
+    # Manualne sterowanie przekaźnikiem (DEVICE_COMMAND)
+    # -----------------------------------------------------
+    def set_manual_state(self, payload):
+        """
+        payload: DeviceCommandPayload
+            - device_id
+            - command ("SET_STATE")
+            - is_on
+        """
+
+        logger.info(
+            f"GPIOService: manual SET_STATE for device_id={payload.device_id}, is_on={payload.is_on}"
+        )
+
+        if payload.command != "SET_STATE":
+            logger.error(f"GPIOService: unknown command {payload.command}")
+            return False
+
+        # fizyczne ustawienie przekaźnika
+        result = gpio_controller.set_state(payload.device_id, payload.is_on)
+
+        if result:
+            logger.info(
+                f"GPIOService: device {payload.device_id} manually set to {'ON' if payload.is_on else 'OFF'}"
+            )
+        else:
+            logger.error(f"GPIOService: failed to set device {payload.device_id}")
+
+        return result
+
+
+gpio_service = GPIOService()

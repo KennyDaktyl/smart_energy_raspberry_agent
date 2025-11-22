@@ -1,0 +1,40 @@
+{
+  "pins": [
+    {
+      "device_id": 2,
+      "pin_number": 17,
+      "mode": "AUTO_POWER",
+      "power_threshold_w": 1800.0
+    },
+    {
+      "device_id": 2,
+      "pin_number": 17,
+      "mode": "AUTO_POWER",
+      "power_threshold_w": 1800.0
+    },
+    {
+      "device_id": 2,
+      "pin_number": 17,
+      "mode": "AUTO_POWER",
+      "power_threshold_w": 1800.0
+    },
+    {
+      "device_id": 2,
+      "pin_number": 17,
+      "mode": "AUTO_POWER",
+      "power_threshold_w": 1800.0
+    },
+    {
+      "device_id": 2,
+      "pin_number": 17,
+      "mode": "AUTO_POWER",
+      "power_threshold_w": 1800.0
+    },
+    {
+      "device_id": 2,
+      "pin_number": 17,
+      "mode": "AUTO_POWER",
+      "power_threshold_w": 1800.0
+    }
+  ]
+}

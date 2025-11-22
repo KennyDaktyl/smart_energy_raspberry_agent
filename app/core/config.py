@@ -1,5 +1,6 @@
-from pathlib import Path
 import json
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
     """
 
     # 🔹 Kluczowe parametry identyfikujące urządzenie
-    DEVICE_UUID: str = Field(..., description="Unikalny identyfikator Raspberry (UUID)")
+    RASPBERRY_UUID: str = Field(..., description="Unikalny identyfikator Raspberry (UUID)")
     SECRET_KEY: str = Field(..., description="Sekretny klucz do autoryzacji z backendem")
 
     # 🔹 Komunikacja i serwis NATS

@@ -1,38 +1,91 @@
 # app/core/nats_client.py
+
 import json
 import logging
-from nats.aio.client import Client as NATS
+import nats
+from nats.js.api import StreamConfig, RetentionPolicy
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-class NatsClient:
+
+class NATSClient:
     def __init__(self):
-        self.nc = NATS()
+        self.nc = None
+        self.js = None
 
     async def connect(self):
-        await self.nc.connect(settings.NATS_URL)
-        logger.info(f"🐭 Connected to NATS at {settings.NATS_URL}")
+        logger.info(f"Connecting to NATS: {settings.NATS_URL}")
 
-    async def subscribe(self, subject: str, callback):
-        async def wrapper(msg):
-            await callback(msg)
+        self.nc = await nats.connect(settings.NATS_URL)
+        self.js = self.nc.jetstream()
 
-        await self.nc.subscribe(subject, cb=wrapper)
-        logger.info(f"📡 Subscribed to {subject}")
+        logger.info("Connected to NATS & JetStream")
 
-    async def publish(self, subject: str, message):
+        # tworzymy wszystkie streamy
+        await self.ensure_streams()
+
+    # ------------------------------------------------------
+
+    async def ensure_streams(self):
         """
-        Accepts:
-        - dict -> JSON convert
-        - bytes -> send raw
+        Tworzy wszystkie wymagane streamy JetStream.
         """
-        if isinstance(message, bytes):
-            data = message
-        else:
-            data = json.dumps(message).encode()
 
-        await self.nc.publish(subject, data)
-        logger.info(f"📤 Published to {subject}: {message}")
+        await self.ensure_stream(
+            name="raspberry_events",
+            subjects=[f"raspberry.{settings.RASPBERRY_UUID}.events"]
+        )
 
-nats_client = NatsClient()
+        await self.ensure_stream(
+            name="raspberry_heartbeat",
+            subjects=[f"raspberry.{settings.RASPBERRY_UUID}.heartbeat"]
+        )
+
+        await self.ensure_stream(
+            name="raspberry_gpio",
+            subjects=[f"raspberry.{settings.RASPBERRY_UUID}.gpio_change"]
+        )
+
+    # ------------------------------------------------------
+
+    async def ensure_stream(self, name: str, subjects: list[str]):
+        """
+        Tworzy stream, jeśli nie istnieje.
+        """
+        try:
+            await self.js.stream_info(name)
+            logger.info(f"Stream '{name}' already exists")
+        except Exception:
+            cfg = StreamConfig(
+                name=name,
+                subjects=subjects,
+                retention=RetentionPolicy.LIMITS  # UŻYWAMY TWOJEJ WERSJI
+            )
+            await self.js.add_stream(cfg)
+            logger.info(f"Created JetStream stream '{name}'")
+
+    # ------------------------------------------------------
+
+    async def publish(self, subject: str, payload):
+        data = json.dumps(payload).encode()
+        await self.js.publish(subject, data)
+
+    async def subscribe_js(self, subject: str, handler):
+        """
+        Subskrypcja JetStream Durable Consumer.
+        """
+        durable = subject.replace(".", "_")
+
+        sub = await self.js.subscribe(
+            subject,
+            durable=durable,
+            cb=handler,
+        )
+
+        logger.info(f"Subscribed to JetStream subject: {subject}")
+        return sub
+
+
+nats_client = NATSClient()
