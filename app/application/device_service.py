@@ -8,7 +8,7 @@ from app.domain.gpio.enums import DeviceMode
 from app.infrastructure.gpio.gpio_config_storage import gpio_config_storage
 from app.infrastructure.gpio.gpio_controller import gpio_controller
 from app.infrastructure.gpio.gpio_manager import gpio_manager
-from app.infrastructure.gpio.gpio_pin_mapping import pin_mapping
+from app.infrastructure.gpio.device_number_mapping import pin_mapping
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +21,11 @@ class GPIOService:
         """
         devices: List[GPIODevice] = gpio_config_storage.load()
 
-        gpio_pin = pin_mapping.get_pin(payload.device_number)
+        device_number = pin_mapping.get_pin(payload.device_number)
 
         new_device = GPIODevice(
             device_id=payload.device_id,
-            pin_number=gpio_pin,
+            pin_number=device_number,
             mode=DeviceMode(payload.mode),
             power_threshold_w=payload.threshold_w,
         )
@@ -39,7 +39,7 @@ class GPIOService:
 
         logger.info(
             f"[CREATE] device_id={payload.device_id} "
-            f"(device_number={payload.device_number} → pin={gpio_pin}) "
+            f"(device_number={payload.device_number} → pin={device_number}) "
             f"mode={payload.mode}, threshold={payload.threshold_w}"
         )
 
