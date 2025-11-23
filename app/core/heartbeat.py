@@ -1,7 +1,6 @@
-# app/core/heartbeat.py
-
 import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from app.core.config import settings
@@ -13,24 +12,24 @@ logger = logging.getLogger(__name__)
 
 async def send_heartbeat() -> None:
     """
-    Wysyła heartbeat do backendu wraz ze stanem GPIO i urządzeń.
+    Wysyła heartbeat agenta Raspberry do backendu przez NATS.
+    Zawiera: czas ISO, stany GPIO, status urządzeń.
     """
 
-    # dajemy czas na inicjalizację GPIO/NATS
-    await asyncio.sleep(1)
+    await asyncio.sleep(1)  # czas na inicjalizacje
 
     while True:
         try:
-            # Odczyt stanów GPIO
+            # Odczyt GPIO + stan urządzeń
             gpio_states: Dict[int, int] = gpio_manager.get_states()
-
-            # Status urządzeń (dane domenowe)
             device_status: List[Dict[str, Any]] = gpio_manager.get_devices_status()
 
             payload = {
                 "uuid": settings.RASPBERRY_UUID,
                 "status": "online",
-                "timestamp": asyncio.get_event_loop().time(),
+                "sent_at": datetime.now(timezone.utc).isoformat(),
+                "gpio_count": len(gpio_states),
+                "device_count": len(device_status),
                 "gpio": gpio_states,
                 "devices": device_status,
             }
@@ -38,7 +37,11 @@ async def send_heartbeat() -> None:
             subject = f"raspberry.{settings.RASPBERRY_UUID}.heartbeat"
             await nats_client.publish(subject, payload)
 
-            logger.info(f"Heartbeat sent: {payload}")
+            logger.info(
+                f"[HEARTBEAT] uuid={payload['uuid']} | gpio={payload['gpio_count']} | "
+                f"devices={payload['device_count']} | sent_at={payload['sent_at']} | "
+                f"subject={subject}"
+            )
 
         except Exception as e:
             logger.exception(f"Heartbeat error: {e}")
