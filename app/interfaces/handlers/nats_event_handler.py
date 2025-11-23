@@ -1,6 +1,5 @@
 import json
 import logging
-
 from app.domain.events.device_events import (
     DeviceCreatedEvent,
     DeviceUpdatedEvent,
@@ -8,14 +7,11 @@ from app.domain.events.device_events import (
     DeviceCommandEvent,
     EventType
 )
+from app.core.nats_client import nats_client   # <-- POPRAWNY IMPORT
 from app.core.config import settings
 from app.application.event_service import event_service
-from smart_energy_raspberry_agent.app.core.nats_client import NATSClient
 
 logger = logging.getLogger(__name__)
-
-
-nats_client = NATSClient()
 
 
 async def nats_event_handler(msg):
@@ -42,28 +38,20 @@ async def nats_event_handler(msg):
                 logger.error(f"Unknown event type: {event_type}")
                 return
 
-        # wykonaj logikę
         await event_service.handle_event(event)
 
-        # JetStream ACK
         await msg.ack()
         logger.info("JetStream ACK sent.")
 
-        # ------------------------------------------------------
-        # BACKEND ACK (TO JEST TO, CZEGO OCZEKUJE BACKEND)
-        # ------------------------------------------------------
+        # Backend ACK
         ack_subject = f"raspberry.{settings.RASPBERRY_UUID}.events.ack"
-
         ack_payload = {
             "device_id": event.payload.device_id,
             "ok": True
         }
 
-        await nats_client.nc.publish(ack_subject, json.dumps(ack_payload).encode())
+        await nats_client.publish_raw(ack_subject, ack_payload)
         logger.info(f"✔ Backend ACK sent: {ack_payload}")
 
-    except Exception as e:
-        logger.exception(f"Error while handling event: {e}")
-        return
-
-
+    except Exception:
+        logger.exception("Error while handling event")
