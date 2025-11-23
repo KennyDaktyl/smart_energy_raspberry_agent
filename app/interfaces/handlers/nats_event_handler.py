@@ -7,7 +7,7 @@ from app.domain.events.device_events import (
     DeviceCommandEvent,
     EventType
 )
-from app.core.nats_client import nats_client   # <-- POPRAWNY IMPORT
+from app.core.nats_client import nats_client
 from app.core.config import settings
 from app.application.event_service import event_service
 
