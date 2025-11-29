@@ -53,7 +53,6 @@ class GPIOController:
 
     def read_pin(self, pin: int) -> int:
         try:
-            GPIO.setup(pin, GPIO.IN)
             return GPIO.input(pin)
         except Exception as e:
             logger.exception(f"GPIO read error on pin {pin}")
