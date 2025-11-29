@@ -23,32 +23,23 @@ class GPIOController:
         for pin in self.pin_map.values():
             GPIO.setup(pin, GPIO.OUT)
 
-    def turn_all_off(self):
-        for device_id, pin in self.pin_map.items():
-            try:
-                GPIO.setup(pin, GPIO.OUT)
+    # def turn_all_off(self):
+    #     for device_id, pin in self.pin_map.items():
+    #         try:
+    #             GPIO.setup(pin, GPIO.OUT)
 
-                if self.active_low:
-                    GPIO.output(pin, GPIO.HIGH)
-                else:
-                    GPIO.output(pin, GPIO.LOW)
+    #             if self.active_low:
+    #                 GPIO.output(pin, GPIO.HIGH)
+    #             else:
+    #                 GPIO.output(pin, GPIO.LOW)
 
-                logger.info(f"GPIOController: Forced OFF device {device_id} (pin {pin}) on startup")
+    #             logger.info(f"GPIOController: Forced OFF device {device_id} (pin {pin}) on startup")
 
-            except Exception as e:
-                logger.error(f"GPIOController: Error forcing OFF pin {pin}: {e}")
+    #         except Exception as e:
+    #             logger.error(f"GPIOController: Error forcing OFF pin {pin}: {e}")
 
     def load_from_entities(self, devices: list[GPIODevice]):
         self.pin_map = {str(device.device_id): device.pin_number for device in devices}
-
-        for device in devices:
-            GPIO.setup(device.pin_number, GPIO.OUT)
-
-            if self.active_low:
-                GPIO.output(device.pin_number, GPIO.HIGH)
-            else:
-                GPIO.output(device.pin_number, GPIO.LOW)
-
         logger.info(f"GPIOController: loaded pin mapping {self.pin_map}")
 
     def read_pin(self, pin: int) -> int:
