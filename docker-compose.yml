@@ -1,0 +1,11 @@
+services:
+  agent:
+    build: .
+    container_name: smart_energy_agent
+    restart: always
+    privileged: true
+    network_mode: host
+    volumes:
+      - ./config.json:/app/config.json
+    env_file:
+      - .env

@@ -2,15 +2,6 @@
   "raspberry_uuid": "bbb61b35-5685-471f-9fb2-bf85b34b72f9",
   "device_max": 1,
   "active_low": true,
-  "pins": [
-    {
-      "device_id": 113,
-      "device_number": 1,
-      "pin_number": 17,
-      "mode": "AUTO_POWER",
-      "power_threshold_kw": 3.0,
-      "is_on": null
-    }
-  ],
+  "pins": [],
   "inverter_serial": "1000000165855382"
 }
