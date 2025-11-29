@@ -26,6 +26,9 @@ async def main():
 
         devices = gpio_config_storage.load()
 
+        raw = gpio_config_storage.load_raw()
+        gpio_controller.active_low = raw.get("active_low", True)
+        
         gpio_controller.load_from_entities(devices)
 
         gpio_manager.load_devices(devices)
