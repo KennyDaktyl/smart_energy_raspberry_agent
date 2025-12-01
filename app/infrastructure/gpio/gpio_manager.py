@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.nats_client import nats_client
 from app.domain.gpio.entities import GPIODevice
 from app.infrastructure.gpio.gpio_controller import gpio_controller
+from app.infrastructure.gpio.hardware import GPIO
 
 logger = logging.getLogger(__name__)
 
@@ -37,19 +38,29 @@ class GPIOManager:
 
         return states
 
-    def get_devices_status(self) -> List[Dict[str, object]]:
+    def get_devices_status(self):
         states = self.get_states()
 
-        return [
-            {
+        results = []
+        for d in self.devices.values():
+            pin = d.pin_number
+            raw = states[pin]
+
+            if gpio_controller.active_low:
+                is_on = raw == GPIO.LOW
+            else:
+                is_on = raw == GPIO.HIGH
+
+            results.append({
                 "device_id": d.device_id,
                 "pin": d.pin_number,
-                "is_on": states[d.pin_number] == 0,
+                "is_on": is_on,
                 "mode": d.mode,
                 "threshold": d.power_threshold_kw,
-            }
-            for d in self.devices.values()
-        ]
+            })
+
+        return results
+
 
     async def detect_changes(self) -> None:
         current = self.get_states()
