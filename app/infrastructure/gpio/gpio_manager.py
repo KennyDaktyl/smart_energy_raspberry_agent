@@ -36,6 +36,10 @@ class GPIOManager:
             states[pin] = val
         return states
 
+    def get_device(self, device_id: int) -> Optional[GPIODevice]:
+        """Return GPIODevice by id or None when missing."""
+        return self.devices.get(str(device_id))
+
     def get_devices_status(self):
         states = self.get_states()
 
