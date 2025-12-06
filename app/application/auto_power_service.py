@@ -25,10 +25,14 @@ class AutoPowerService:
             threshold = d.power_threshold_kw or 0
 
             if power >= threshold:
-                gpio_controller.set_state(d.device_id, True)
+                ok = gpio_controller.set_state(d.device_id, True)
+                if ok:
+                    gpio_config_storage.update_state(d.device_id, True)
                 logger.info(f"AUTO ON device {d.device_id}")
             else:
-                gpio_controller.set_state(d.device_id, False)
+                ok = gpio_controller.set_state(d.device_id, False)
+                if ok:
+                    gpio_config_storage.update_state(d.device_id, False)
                 logger.info(f"AUTO OFF device {d.device_id}")
 
 

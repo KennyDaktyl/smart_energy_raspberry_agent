@@ -33,7 +33,7 @@ class GPIOService:
         gpio_config_storage.save(devices)
 
         # aktualizacja active_low
-        gpio_controller.active_low = pin_mapping.is_active_low()
+        gpio_controller.active_low = gpio_config_storage.get_active_low()
 
         gpio_controller.load_from_entities(devices)
         gpio_manager.load_devices(devices)
@@ -62,7 +62,7 @@ class GPIOService:
 
         gpio_config_storage.save(devices)
 
-        gpio_controller.active_low = pin_mapping.is_active_low()
+        gpio_controller.active_low = gpio_config_storage.get_active_low()
         gpio_controller.load_from_entities(devices)
         gpio_manager.load_devices(devices)
 
@@ -75,7 +75,7 @@ class GPIOService:
 
         gpio_config_storage.save(devices)
 
-        gpio_controller.active_low = pin_mapping.is_active_low()
+        gpio_controller.active_low = gpio_config_storage.get_active_low()
         gpio_controller.load_from_entities(devices)
         gpio_manager.load_devices(devices)
 

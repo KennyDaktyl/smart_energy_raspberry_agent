@@ -30,6 +30,10 @@ class GPIOConfigStorage:
         data = self.load_raw()
         return [GPIODevice(**p) for p in data.get("pins", [])]
 
+    def get_active_low(self) -> bool:
+        data = self.load_raw()
+        return bool(data.get("active_low", True))
+
     def get_inverter_serial(self) -> str | None:
         data = self.load_raw()
         return data.get("inverter_serial")

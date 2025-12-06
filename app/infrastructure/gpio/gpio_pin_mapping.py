@@ -31,9 +31,6 @@ class PinMapping:
         if "device_pin_map" not in self.mapping:
             raise RuntimeError("gpio_mapping.json must contain 'device_pin_map' section.")
 
-        if "active_low" not in self.mapping:
-            raise RuntimeError("gpio_mapping.json must contain 'active_low' field.")
-
         logger.info(f"Loaded GPIO mapping from {self.path}")
 
     def get_pin(self, device_number: int) -> int:
@@ -43,9 +40,6 @@ class PinMapping:
                 f"gpio_mapping.json: device_number {device_number} has no assigned GPIO pin."
             )
         return pin
-
-    def is_active_low(self) -> bool:
-        return bool(self.mapping["active_low"])
 
 
 pin_mapping = PinMapping()
