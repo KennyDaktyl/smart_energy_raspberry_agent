@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 
 from app.core.config import settings
 from app.core.nats_client import nats_client
+from app.domain.events.enums import EventType
 from app.infrastructure.gpio.gpio_manager import gpio_manager
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ async def send_heartbeat() -> None:
             gpio_states: Dict[int, int] = gpio_manager.get_states()
             device_status: List[Dict[str, Any]] = gpio_manager.get_devices_status()
 
-            payload = {
+            heartbeat_payload = {
                 "uuid": settings.RASPBERRY_UUID,
                 "status": "online",
                 "timestamp": int(datetime.now(timezone.utc).timestamp()),
@@ -31,11 +32,16 @@ async def send_heartbeat() -> None:
                 "devices": device_status,
             }
 
+            message = {
+                "event_type": EventType.HEARTBEAT.value,
+                "payload": heartbeat_payload,
+            }
+
             # JETSTREAM — PUBLISH
-            await nats_client.js_publish(subject, payload)
+            await nats_client.js_publish(subject, message)
 
             logger.info(
-                f"[HEARTBEAT] subject={subject} | payload: {payload}"
+                f"[HEARTBEAT] subject={subject} | payload: {message}"
             )
 
         except Exception as e:

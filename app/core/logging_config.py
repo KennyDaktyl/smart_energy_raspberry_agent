@@ -17,7 +17,7 @@ formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
 file_handler = RotatingFileHandler(
     LOG_FILE_PATH, maxBytes=10_000_000, backupCount=5, encoding="utf-8"
 )
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(formatter)
 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -25,7 +25,7 @@ console_handler.setLevel(logging.DEBUG)
 console_handler.setFormatter(formatter)
 
 root_logger = logging.getLogger()
-root_logger.setLevel(logging.DEBUG)
+root_logger.setLevel(logging.INFO)
 
 for handler in list(root_logger.handlers):
     root_logger.removeHandler(handler)
@@ -40,7 +40,7 @@ for name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
     log.propagate = True
 
 logger = logging.getLogger("app")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logger.propagate = True
 
 logger.info(f"Logging initialized. Writing logs to: {LOG_FILE_PATH}")

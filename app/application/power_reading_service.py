@@ -21,7 +21,7 @@ class PowerReadingService:
         ]
 
     async def handle_inverter_power(self, event: InverterProductionEvent) -> None:
-        power: float = event.active_power
+        power: float = event.payload.active_power
         logger.info(f"Received inverter power = {power} W")
 
         auto_devices: List[GPIODevice] = self._get_auto_power_devices()
