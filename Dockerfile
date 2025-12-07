@@ -9,6 +9,10 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        python3-dev \
+    && \
     if [ "$TARGETARCH" = "arm" ] || [ "$TARGETARCH" = "arm64" ]; then \
         if apt-get install -y --no-install-recommends libgpiod2 python3-rpi.gpio; then \
             echo "Installed Raspberry Pi GPIO packages for $TARGETARCH"; \
