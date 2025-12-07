@@ -36,7 +36,7 @@ class PowerReadingService:
                     backend_adapter.log_device_event(
                         device_id=device.device_id,
                         pin_state=False,
-                        trigger_reason="POWER_MISSING",
+                        trigger_reason="AUTO_TRIGGER",
                         power_kw=power_kw,
                     )
             return
