@@ -29,9 +29,10 @@ class BackendAdapter:
             "device_id": device_id,
             "pin_state": pin_state,
             "trigger_reason": trigger_reason,
-            "power_kw": power_kw,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+        if power_kw is not None:
+            payload["power_kw"] = power_kw
 
         try:
             resp = httpx.post(url, json=payload, timeout=5.0)

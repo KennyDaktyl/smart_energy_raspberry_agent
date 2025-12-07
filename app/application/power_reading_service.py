@@ -25,7 +25,7 @@ class PowerReadingService:
     async def handle_inverter_power(self, event: InverterProductionEvent) -> None:
         power = event.payload.active_power
         logger.info(f"Received inverter power = {power} W")
-        power_kw = power / 1000 if power is not None else None
+        power_kw = power
 
         if power is None:
             logger.warning("Active power missing. Forcing all AUTO_POWER devices OFF for safety.")
@@ -36,7 +36,7 @@ class PowerReadingService:
                     backend_adapter.log_device_event(
                         device_id=device.device_id,
                         pin_state=False,
-                        trigger_reason="AUTO_TRIGGER",
+                        trigger_reason="POWER_MISSING",
                         power_kw=power_kw,
                     )
             return
