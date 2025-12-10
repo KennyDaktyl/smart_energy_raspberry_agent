@@ -1,0 +1,5 @@
+{
+  "device_pin_map": {
+    "1": { "pin": 17, "active_low": false }
+  }
+}
